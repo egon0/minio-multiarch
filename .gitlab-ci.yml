@@ -12,20 +12,15 @@ build:ARM64:
   script:
 # Current thinking is to add build the container & tag with both the date
 # in YYYY-mm-dd-h-m-s format as well as "latest":
-    - whoami
-    - cd ~
     - wget https://github.com/docker/buildx/releases/download/v0.3.1/buildx-v0.3.1.linux-amd64
     - mkdir -p ~/.docker/cli-plugins
-    - ls -ltar ~/.docker
     - mv buildx* ~/.docker/cli-plugins/docker-buildx
     - chmod a+x ~/.docker/cli-plugins/docker-buildx
-    - ls -ltar ~/.docker/cli-plugins
-    - docker buildx build .
-    # - timestamp=$(date +%Y%m%d%H%M%S)
-    # - cd $CI_PROJECT_DIR/
-    # - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # - docker build --no-cache . -t minio-arm64
-    # - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64latest
-    # - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
-    # - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-    # - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
+    - timestamp=$(date +%Y%m%d%H%M%S)
+    - cd $CI_PROJECT_DIR/
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker buildx build --no-cache . -t minio-arm64
+    - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64latest
+    - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
+    - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
+    - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
