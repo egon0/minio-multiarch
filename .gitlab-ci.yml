@@ -20,6 +20,7 @@ build:ARM64:
     - mv buildx* ~/.docker/cli-plugins/docker-buildx
     - chmod a+x ~/.docker/cli-plugins/docker-buildx
     - docker buildx ls
+    - docker buildx imagetools inspect alpine
     - timestamp=$(date +%Y%m%d%H%M%S)
     - cd $CI_PROJECT_DIR/
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
