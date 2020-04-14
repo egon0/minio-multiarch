@@ -12,8 +12,9 @@ build:ARM64:
   script:
 # Current thinking is to add build the container & tag with both the date
 # in YYYY-mm-dd-h-m-s format as well as "latest":
-    - apk add qemu-system-arm
-    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    - apk add qemu-aarch64_be
+    - ls -ltar /usr/bin/
+    # - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
     - wget https://github.com/docker/buildx/releases/download/v0.3.1/buildx-v0.3.1.linux-amd64
     - mkdir -p ~/.docker/cli-plugins
     - mv buildx* ~/.docker/cli-plugins/docker-buildx
