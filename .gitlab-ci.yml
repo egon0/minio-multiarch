@@ -65,7 +65,7 @@ deploy:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker buildx create --use --name mybuilder
     # - docker buildx build --platform linux/arm64 --push -t $CI_REGISTRY_IMAGE .
-    - docker buildx build --platform linux/arm64 -t minio-arm64 .
+    - docker buildx build --platform linux/arm64 . -t minio-arm64
     - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
     - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
     - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
