@@ -12,11 +12,13 @@ build:ARM64:
   script:
 # Current thinking is to add build the container & tag with both the date
 # in YYYY-mm-dd-h-m-s format as well as "latest":
+    - whoami
+    - cd ~
     - wget https://github.com/docker/buildx/releases/download/v0.3.1/buildx-v0.3.1.linux-amd64
-    - mkdir /root/.docker/cli-plugins/
+    - mkdir ~/.docker/cli-plugins
     - mv buildx* /root/.docker/cli-plugins/docker-buildx
     - chmod a+x /root/.docker/cli-plugins/docker-buildx
-    - ls -ltar ~/.docker/cli-plugins/
+    - ls -ltar ~/.docker/cli-plugins
     - docker buildx build .
     # - timestamp=$(date +%Y%m%d%H%M%S)
     # - cd $CI_PROJECT_DIR/
