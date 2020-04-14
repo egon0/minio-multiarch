@@ -13,7 +13,6 @@ build:ARM64:
 # Current thinking is to add build the container & tag with both the date
 # in YYYY-mm-dd-h-m-s format as well as "latest":
     - apk add qemu-aarch64_be
-    - lsb_release -a
     - ls /proc/sys/fs/binfmt_misc/
     - cat /proc/sys/fs/binfmt_misc/qemu-aarch64
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
