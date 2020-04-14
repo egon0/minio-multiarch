@@ -1,31 +1,67 @@
-stages:
-  - docker builds
+# Credit -> https://stackoverflow.com/questions/58600986/gitlab-ci-trying-to-use-docker-buildx-to-build-for-arm64
 
-build:ARM64:
-  stage: docker builds
-  image: docker:latest
+stages:
+  - buildx
+  - deploy
+
+# build:ARM64:
+#   stage: buildx
+#   image: docker:latest
+#   variables:
+#     DOCKER_HOST: tcp://docker:2375/
+#     DOCKER_DRIVER: overlay2
+#   services:
+#     - docker:dind
+#   script:
+# # Current thinking is to add build the container & tag with both the date
+# # in YYYY-mm-dd-h-m-s format as well as "latest":
+#     - apk add qemu-aarch64
+#     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+#     - ls /proc/sys/fs/binfmt_misc/qemu-aarch64
+#     - cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+#     - wget https://github.com/docker/buildx/releases/download/v0.3.1/buildx-v0.3.1.linux-amd64
+#     - mkdir -p ~/.docker/cli-plugins
+#     - mv buildx* ~/.docker/cli-plugins/docker-buildx
+#     - chmod a+x ~/.docker/cli-plugins/docker-buildx
+#     - docker buildx ls
+#     - timestamp=$(date +%Y%m%d%H%M%S)
+#     - cd $CI_PROJECT_DIR/
+#     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+#     - docker buildx build --platform=linux/arm64 --no-cache . -t minio-arm64
+#     - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
+#     - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
+#     - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
+#     - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
+
+
+buildx:
+  image: docker:19.03-git
+  stage: buildx
   variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
+    GIT_STRATEGY: none
+  artifacts:
+    paths:
+      - buildx
+    expire_in: 1 hour
   services:
-    - docker:dind
+    - docker:19.03-dind
   script:
-# Current thinking is to add build the container & tag with both the date
-# in YYYY-mm-dd-h-m-s format as well as "latest":
-    - apk add qemu-aarch64
-    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    - ls /proc/sys/fs/binfmt_misc/qemu-aarch64
-    - cat /proc/sys/fs/binfmt_misc/qemu-aarch64
-    - wget https://github.com/docker/buildx/releases/download/v0.3.1/buildx-v0.3.1.linux-amd64
+    - export DOCKER_BUILDKIT=1
+    - git clone git://github.com/docker/buildx ./docker-buildx
+    - docker build --platform=local -o . ./docker-buildx
+
+
+deploy:
+  image: docker:19.03
+  stage: deploy
+  services:
+    - name: docker:19.03-dind
+      command: ["--experimental"]
+  before_script:
     - mkdir -p ~/.docker/cli-plugins
-    - mv buildx* ~/.docker/cli-plugins/docker-buildx
-    - chmod a+x ~/.docker/cli-plugins/docker-buildx
-    - docker buildx ls
-    - timestamp=$(date +%Y%m%d%H%M%S)
-    - cd $CI_PROJECT_DIR/
+    - mv buildx ~/.docker/cli-plugins/docker-buildx
+    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker buildx build --platform=linux/arm64 --no-cache . -t minio-arm64
-    - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-    - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
-    - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-    - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
+    - docker buildx create --use --name mybuilder
+    - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --push -t $CI_REGISTRY_IMAGE .
