@@ -3,36 +3,10 @@
 stages:
   - buildx
   - deploy
+  - Weekly buildx
+  - Weekly deploy
 
-# build:ARM64:
-#   stage: buildx
-#   image: docker:latest
-#   variables:
-#     DOCKER_HOST: tcp://docker:2375/
-#     DOCKER_DRIVER: overlay2
-#   services:
-#     - docker:dind
-#   script:
-# # Current thinking is to add build the container & tag with both the date
-# # in YYYY-mm-dd-h-m-s format as well as "latest":
-#     - apk add qemu-aarch64
-#     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-#     - ls /proc/sys/fs/binfmt_misc/qemu-aarch64
-#     - cat /proc/sys/fs/binfmt_misc/qemu-aarch64
-#     - wget https://github.com/docker/buildx/releases/download/v0.3.1/buildx-v0.3.1.linux-amd64
-#     - mkdir -p ~/.docker/cli-plugins
-#     - mv buildx* ~/.docker/cli-plugins/docker-buildx
-#     - chmod a+x ~/.docker/cli-plugins/docker-buildx
-#     - docker buildx ls
-#     - timestamp=$(date +%Y%m%d%H%M%S)
-#     - cd $CI_PROJECT_DIR/
-#     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#     - docker buildx build --platform=linux/arm64 --no-cache . -t minio-arm64
-#     - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-#     - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
-#     - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-#     - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
-
+# ----- Ad hoc Builds -----
 
 buildx:
   image: docker:19.03-git
@@ -42,34 +16,17 @@ buildx:
   artifacts:
     paths:
       - buildx
-    expire_in: 1 hour
+    expire_in: 3 hour
   services:
     - docker:19.03-dind
   script:
     - export DOCKER_BUILDKIT=1
     - git clone git://github.com/docker/buildx ./docker-buildx
     - docker build --platform=local -o . ./docker-buildx
-
-
-# deploy:
-#   image: docker:19.03
-#   stage: deploy
-#   services:
-#     - name: docker:19.03-dind
-#       command: ["--experimental"]
-#   before_script:
-#     - mkdir -p ~/.docker/cli-plugins
-#     - mv buildx ~/.docker/cli-plugins/docker-buildx
-#     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-#   script:
-#     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#     - docker buildx create --use --name mybuilder
-#     - docker buildx build --platform linux/arm64 --push -t $CI_REGISTRY_IMAGE .
-    # - docker buildx build --platform linux/arm64 . -t minio-arm64
-    # - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-    # - docker tag minio-arm64 registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
-    # - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:latest
-    # - docker push registry.gitlab.com/$CI_PROJECT_PATH/minio-arm64:$timestamp
+  only: 
+    changes:
+      - Dockerfile
+      - .gitlab-ci.yml
 
 deploy:
   image: docker:19.03
@@ -85,3 +42,46 @@ deploy:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
     - docker buildx create --use --name mybuilder
     - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --push -t $CI_REGISTRY_IMAGE .
+  only: 
+    changes:
+      - Dockerfile
+      - .gitlab-ci.yml
+
+# ----- Weekly Build -----
+
+weekly:buildx:
+  image: docker:19.03-git
+  stage: Weekly buildx
+  variables:
+    GIT_STRATEGY: none
+  artifacts:
+    paths:
+      - buildx
+    expire_in: 3 hour
+  services:
+    - docker:19.03-dind
+  script:
+    - export DOCKER_BUILDKIT=1
+    - git clone git://github.com/docker/buildx ./docker-buildx
+    - docker build --platform=local -o . ./docker-buildx
+  only:
+    - schedules
+    - master
+
+weekly:deploy:
+  image: docker:19.03
+  stage: Weekly deploy
+  services:
+    - name: docker:19.03-dind
+      command: ["--experimental"]
+  before_script:
+    - mkdir -p ~/.docker/cli-plugins
+    - mv buildx ~/.docker/cli-plugins/docker-buildx
+    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker buildx create --use --name mybuilder
+    - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --push -t $CI_REGISTRY_IMAGE .
+  only:
+    - schedules
+    - master
