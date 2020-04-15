@@ -9,10 +9,10 @@ ENV GOPATH /go
 ENV CGO_ENABLED 0
 ENV GO111MODULE on
 
-RUN  \
-     apk add --no-cache git && \
-     git clone https://github.com/minio/minio && cd minio && \
-     go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
+# RUN  \
+#      apk add --no-cache git && \
+#      git clone https://github.com/minio/minio && cd minio && \
+#      go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
 
 FROM alpine:3.10
 
@@ -28,9 +28,9 @@ COPY --from=0 /go/bin/minio /usr/bin/minio
 COPY --from=0 /go/minio/CREDITS /third_party/
 COPY --from=0 /go/minio/dockerscripts/docker-entrypoint.sh /usr/bin/
 
-RUN  \
-     apk add --no-cache ca-certificates 'curl>7.61.0' 'su-exec>=0.2' && \
-     echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf
+# RUN  \
+#      apk add --no-cache ca-certificates 'curl>7.61.0' 'su-exec>=0.2' && \
+#      echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 
