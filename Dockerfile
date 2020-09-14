@@ -1,9 +1,6 @@
-#Pulled from: https://hub.docker.com/r/minio/minio/dockerfile
+FROM golang:1.14-alpine as builder
 
-FROM golang:1.13-alpine
-
-LABEL maintainer="Kelly Hair <khair@gitlab.com>"
-
+LABEL maintainer="MinIO Inc <dev@min.io>"
 
 ENV GOPATH /go
 ENV CGO_ENABLED 0
@@ -12,10 +9,9 @@ ENV GO111MODULE on
 RUN  \
      apk add --no-cache git && \
      git clone https://github.com/minio/minio && cd minio && \
-     go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
+     git checkout master && go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
 
-# Changing to use latest as I will not have access to this after leaving GitLab
-FROM alpine:latest
+FROM alpine:3.12
 
 ENV MINIO_UPDATE off
 ENV MINIO_ACCESS_KEY_FILE=access_key \
@@ -25,9 +21,9 @@ ENV MINIO_ACCESS_KEY_FILE=access_key \
 
 EXPOSE 9000
 
-COPY --from=0 /go/bin/minio /usr/bin/minio
-COPY --from=0 /go/minio/CREDITS /third_party/
-COPY --from=0 /go/minio/dockerscripts/docker-entrypoint.sh /usr/bin/
+COPY --from=builder /go/bin/minio /usr/bin/minio
+COPY --from=builder /go/minio/CREDITS /third_party/
+COPY --from=builder /go/minio/dockerscripts/docker-entrypoint.sh /usr/bin/
 
 RUN  \
      apk add --no-cache ca-certificates 'curl>7.61.0' 'su-exec>=0.2' && \
