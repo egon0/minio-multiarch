@@ -27,6 +27,8 @@ buildx:
     changes:
       - Dockerfile
       - .gitlab-ci.yml
+  except: 
+    - schedules
 
 deploy:
   image: docker:19.03
@@ -46,6 +48,8 @@ deploy:
     changes:
       - Dockerfile
       - .gitlab-ci.yml
+  except: 
+    - schedules
 
 # ----- Weekly Build -----
 
