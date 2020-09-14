@@ -14,7 +14,8 @@ RUN  \
      git clone https://github.com/minio/minio && cd minio && \
      go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
 
-FROM alpine:3.10
+# Changing to use latest as I will not have access to this after leaving GitLab
+FROM alpine:latest
 
 ENV MINIO_UPDATE off
 ENV MINIO_ACCESS_KEY_FILE=access_key \
