@@ -6,6 +6,10 @@ stages:
   - Weekly buildx
   - Weekly deploy
 
+variables:
+  DOCKER_DRIVER: overlay
+  DOCKER_TLS_CERTDIR: ""
+
 # ----- Ad hoc Builds -----
 
 buildx:
