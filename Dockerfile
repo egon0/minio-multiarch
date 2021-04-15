@@ -9,7 +9,7 @@ ENV GO111MODULE on
 RUN  \
      apk add --no-cache git && \
      git clone -b release https://github.com/minio/minio 	&& cd minio && \
-     git checkout release && go build -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
+     git checkout release && go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
 
 FROM alpine:3.12
 
