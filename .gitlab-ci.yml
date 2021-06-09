@@ -1,95 +1,21 @@
-# Credit -> https://stackoverflow.com/questions/58600986/gitlab-ci-trying-to-use-docker-buildx-to-build-for-arm64
-
-stages:
-  - buildx
-  - deploy
-  - Weekly buildx
-  - Weekly deploy
+image: registry.gitlab.tictex.eu/docker/docker-with-buildx-git:latest
 
 variables:
-  DOCKER_DRIVER: overlay
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
 
-# ----- Ad hoc Builds -----
+services:
+  - docker:dind
 
-buildx:
-  image: docker:19.03-git
-  stage: buildx
+build:
+  stage: build
   variables:
-    GIT_STRATEGY: none
-  artifacts:
-    paths:
-      - buildx
-    expire_in: 3 hour
-  services:
-    - docker:19.03-dind
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   script:
-    - export DOCKER_BUILDKIT=1
-    - git clone git://github.com/docker/buildx ./docker-buildx
-    - docker build --platform=local -o . ./docker-buildx
-  only: 
-    changes:
-      - Dockerfile
-      - .gitlab-ci.yml
-  except: 
-    - schedules
-
-deploy:
-  image: docker:19.03
-  stage: deploy
-  services:
-    - name: docker:19.03-dind
-      command: ["--experimental"]
-  before_script:
-    - mkdir -p ~/.docker/cli-plugins
-    - mv buildx ~/.docker/cli-plugins/docker-buildx
-    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker buildx create --use --name mybuilder
-    - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --push -t $CI_REGISTRY_IMAGE .
-  only: 
-    changes:
-      - Dockerfile
-      - .gitlab-ci.yml
-  except: 
-    - schedules
-
-# ----- Weekly Build -----
-
-weekly:buildx:
-  image: docker:19.03-git
-  stage: Weekly buildx
-  variables:
-    GIT_STRATEGY: none
-  artifacts:
-    paths:
-      - buildx
-    expire_in: 3 hour
-  services:
-    - docker:19.03-dind
-  script:
-    - export DOCKER_BUILDKIT=1
-    - git clone git://github.com/docker/buildx ./docker-buildx
-    - docker build --platform=local -o . ./docker-buildx
-  only:
-    - schedules
-    - main
-
-weekly:deploy:
-  image: docker:19.03
-  stage: Weekly deploy
-  services:
-    - name: docker:19.03-dind
-      command: ["--experimental"]
-  before_script:
-    - mkdir -p ~/.docker/cli-plugins
-    - mv buildx ~/.docker/cli-plugins/docker-buildx
-    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker buildx create --use --name mybuilder
-    - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --push -t $CI_REGISTRY_IMAGE .
-  only:
-    - schedules
-    - main
+    - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --push -t $IMAGE_TAG .
+    - docker pull $IMAGE_TAG
+    - docker tag $IMAGE_TAG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
