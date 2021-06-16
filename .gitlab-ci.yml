@@ -11,8 +11,8 @@ services:
 build:
   stage: build
   variables:
-    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    D_IMAGE_TAG: egon0/minio-multiarch:$CI_COMMIT_REF_SLUG
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$(date +%Y-%m-%d)
+    D_IMAGE_TAG: egon0/minio-multiarch:$(date +%Y-%m-%d)
     D_LATEST_TAG: egon0/minio-multiarch:latest
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
