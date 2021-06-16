@@ -1,4 +1,4 @@
-image: registry.gitlab.tictex.eu/docker/docker-with-buildx-git:latest
+image: egon0/docker-with-buildx-and-git:latest
 
 variables:
   DOCKER_HOST: tcp://docker:2375/
@@ -11,11 +11,12 @@ services:
 build:
   stage: build
   variables:
-    IMAGE_TAG: $CI_REGISTRY_IMAGE:$(date +%Y-%m-%d)
-    D_IMAGE_TAG: egon0/minio-multiarch:$(date +%Y-%m-%d)
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+    D_IMAGE_TAG: egon0/minio-multiarch
     D_LATEST_TAG: egon0/minio-multiarch:latest
   script:
+    - echo $IMAGE_TAG:$(date +%Y-%m-%d)
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker login -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
     - docker buildx create --use --name A$CI_COMMIT_SHORT_SHA
-    - docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG -t $CI_REGISTRY_IMAGE:latest -t $D_IMAGE_TAG -t $D_LATEST_TAG .
+    - docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG:$(date +%Y-%m-%d) -t $CI_REGISTRY_IMAGE:latest -t $D_IMAGE_TAG:$(date +%Y-%m-%d) -t $D_LATEST_TAG .
