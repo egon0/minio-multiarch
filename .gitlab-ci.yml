@@ -12,7 +12,10 @@ build:
   stage: build
   variables:
     IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    D_IMAGE_TAG: egon0/minio-multiarch:$CI_COMMIT_REF_SLUG
+    D_LATEST_TAG: egon0/minio-multiarch:latest
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
     - docker buildx create --use --name A$CI_COMMIT_SHORT_SHA
-    - docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG -t $CI_REGISTRY_IMAGE:latest .
+    - docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG -t $CI_REGISTRY_IMAGE:latest -t $D_IMAGE_TAG -t $D_LATEST_TAG .
