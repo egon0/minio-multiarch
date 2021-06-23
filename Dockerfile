@@ -7,9 +7,11 @@ ENV CGO_ENABLED 0
 ENV GO111MODULE on
 
 RUN  \
-     apk add --no-cache git && \
-     git clone -b release https://github.com/minio/minio 	&& cd minio && \
-     git checkout release && go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
+     apk add --no-cache git jq && \
+     git config --global advice.detachedHead false && \
+     LATEST_MINIO_GITHUB=$(wget --quiet "https://api.github.com/repos/minio/minio/releases/latest" -O - |  jq -r '.tag_name'); \
+     git clone https://github.com/minio/minio 	&& cd minio && \
+     git checkout "$LATEST_MINIO_GITHUB" && go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
 
 FROM alpine:3.12
 
