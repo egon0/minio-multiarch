@@ -15,8 +15,17 @@ build:
     D_IMAGE_TAG: egon0/minio-multiarch
     D_LATEST_TAG: egon0/minio-multiarch:latest
   script:
-    - echo $IMAGE_TAG:$(date +%Y-%m-%d)
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker login -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
-    - docker buildx create --use --name A$CI_COMMIT_SHORT_SHA
-    - docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG:$(date +%Y-%m-%d) -t $CI_REGISTRY_IMAGE:latest -t $D_IMAGE_TAG:$(date +%Y-%m-%d) -t $D_LATEST_TAG .
+      - >
+        apk add --no-cache jq;
+        LATEST_MINIO_GITHUB=$(wget --quiet "https://api.github.com/repos/minio/minio/releases/latest" -O - |  jq -r '.tag_name');
+        LATEST_MINIO_DHUB=$(wget -q https://registry.hub.docker.com/v1/repositories/egon0/minio-multiarch/tags -O - | sed -e 's/[][]//g' -e 's/"//g' -e 's/ //g' | tr '}' '\n' | awk -F: '{print $3}' | tail -n1);
+        if [ "$LATEST_MINIO_GITHUB" != "$LATEST_MINIO_DHUB" ]
+         then
+          docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+          docker login -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
+          docker buildx create --use --name A$CI_COMMIT_SHORT_SHA
+          docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG:$LATEST_MINIO_GITHUB -t $CI_REGISTRY_IMAGE:latest -t $D_IMAGE_TAG:$LATEST_MINIO_GITHUB -t $D_LATEST_TAG .
+        else
+          return true
+        fi
+
