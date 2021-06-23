@@ -26,6 +26,6 @@ build:
           docker buildx create --use --name A$CI_COMMIT_SHORT_SHA
           docker buildx build --platform $BUILD_PLATFORMS --push -t $IMAGE_TAG:$LATEST_MINIO_GITHUB -t $CI_REGISTRY_IMAGE:latest -t $D_IMAGE_TAG:$LATEST_MINIO_GITHUB -t $D_LATEST_TAG .
         else
-          return 1
+          return 0
         fi
 
