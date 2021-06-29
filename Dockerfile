@@ -1,19 +1,4 @@
-FROM golang:1.16-alpine as builder
-
-LABEL maintainer="MinIO Inc <dev@min.io>"
-
-ENV GOPATH /go
-ENV CGO_ENABLED 0
-ENV GO111MODULE on
-
-RUN  \
-     apk add --no-cache git jq && \
-     git config --global advice.detachedHead false && \
-     LATEST_MINIO_GITHUB=$(wget --quiet "https://api.github.com/repos/minio/minio/releases/latest" -O - |  jq -r '.tag_name'); \
-     git clone https://github.com/minio/minio 	&& cd minio && \
-     git checkout "$LATEST_MINIO_GITHUB" && go install -v -ldflags "$(go run buildscripts/gen-ldflags.go)"
-
-FROM alpine:3.12
+FROM alpine:3.13
 
 ENV MINIO_UPDATE off
 ENV MINIO_ACCESS_KEY_FILE=access_key \
@@ -21,15 +6,26 @@ ENV MINIO_ACCESS_KEY_FILE=access_key \
     MINIO_KMS_MASTER_KEY_FILE=kms_master_key \
     MINIO_SSE_MASTER_KEY_FILE=sse_master_key
 
+RUN \
+    ARCH=$(apk --print-arch); \
+    apk add --no-progress --no-cache wget; \
+    if [[ "$ARCH" == "x86_64" ]]; then DOWNLOAD_URL="https://dl.min.io/server/minio/release/linux-amd64/minio"; \
+    elif [[ "$ARCH" == "armv7" ]]; then DOWNLOAD_URL="https://dl.min.io/server/minio/release/linux-arm/minio"; \
+    elif [[ "$ARCH" == "aarch64" ]]; then DOWNLOAD_URL="https://dl.min.io/server/minio/release/linux-arm64/minio"; \
+    fi; \
+    wget $DOWNLOAD_URL -nv -O /usr/bin/minio; \
+    wget $DOWNLOAD_URL.sha256sum -nv -O /usr/bin/minio.sha256sum; \
+    chmod +x /usr/bin/minio; \
+    wget https://github.com/minio/minio/raw/master/dockerscripts/docker-entrypoint.sh -nv -O /usr/bin/docker-entrypoint.sh; \
+    chmod +x /usr/bin/docker-entrypoint.sh;
+
+RUN \
+    echo "Checking signature of downloaded binary:"; \
+    echo "$(awk '{print $1}' /usr/bin/minio.sha256sum)  /usr/bin/minio" > /tmp/checksum; \
+    sha256sum -c /tmp/checksum
+
+
 EXPOSE 9000
-
-COPY --from=builder /go/bin/minio /usr/bin/minio
-COPY --from=builder /go/minio/CREDITS /third_party/
-COPY --from=builder /go/minio/dockerscripts/docker-entrypoint.sh /usr/bin/
-
-RUN  \
-     apk add --no-cache ca-certificates 'curl>7.61.0' 'su-exec>=0.2' && \
-     echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 

@@ -12,8 +12,8 @@ build:
   stage: build
   variables:
     IMAGE_TAG: $CI_REGISTRY_IMAGE
-    D_IMAGE_TAG: egon0/minio-multiarch
-    D_LATEST_TAG: egon0/minio-multiarch:latest
+    D_IMAGE_TAG: egon0/minio-binary-multiarch
+    D_LATEST_TAG: egon0/minio-binary-multiarch:latest
   script:
       - >
         apk add --no-cache jq;
